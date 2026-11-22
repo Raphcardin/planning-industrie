@@ -49,9 +49,9 @@ main.nonav{padding-bottom:30px}
 .seg button{flex:1;border:0;background:none;border-radius:9px;min-height:42px;font-weight:600;color:var(--mute)}
 .seg button.on{background:var(--band);color:#fff}
 .weeknav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.weeknav button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:22px}
+.weeknav button{width:48px;height:64px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:22px}
 .weeknav div{flex:1;text-align:center;font:700 22px/1.1 "Barlow Condensed",sans-serif}
-.wkl{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:12px;min-height:52px;padding:4px 8px;text-align:center;font:700 20px/1.1 "Barlow Condensed",sans-serif}
+.wkl{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:12px;min-height:64px;padding:6px 8px;text-align:center;font:700 25px/1.1 "Barlow Condensed",sans-serif}
 .wkl b{color:light-dark(#2563EB,#60A5FA)}.wkl small{display:block;font:500 12px Barlow,sans-serif;color:var(--mute)}
 .weeknav small{display:block;font:500 13px Barlow,sans-serif;color:var(--mute)}
 .row{display:grid;grid-template-columns:minmax(0,4.6em) minmax(0,1fr) minmax(0,1fr);align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line)}
@@ -216,8 +216,10 @@ thead th{vertical-align:top}
 .stat{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.stat .mini{color:var(--ink)}
 .hist.late{border-left:3px solid #e8771a;padding-left:8px}
 .rft{color:#c25f0c;font-weight:600}.rfok{color:#23854a;font-weight:600}.rfokbox{background:light-dark(#e7f6ec,#12301d);color:#1f7a43;font-weight:600}.rfbox{background:light-dark(#fdf0e4,#3a2512);color:#a24e08;font-weight:600}
-.gl.big .hf{height:40px;font-size:15px}.gl.big .hf.j,.gl.big .hf.fer{height:84px;font-size:17px}
-.gl.big thead th b{font-size:18px}.gl.big tbody tr{border-top:0}.gl.big tbody tr:nth-child(even) td{background:none}
+.gl.gmid .hf{height:34px;font-size:14px}.gl.gmid .hf.j,.gl.gmid .hf.fer{height:72px;font-size:16px}
+.gl.roomy .hf{height:40px;font-size:15px}.gl.roomy .hf.j,.gl.roomy .hf.fer{height:84px;font-size:17px}.gl.roomy tbody th{font-size:15px}
+.gl.big .hf{height:56px;font-size:19px}.gl.big .hf.j,.gl.big .hf.fer{height:116px;font-size:21px}
+.gl.big thead th b{font-size:22px}.gl.big tbody tr{border-top:0}.gl.big tbody tr:nth-child(even) td{background:none}
 .dtags{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dtags .chip{width:auto;font-size:14px;padding:5px 9px}
 .pl,.notebox,.nt,.snote{white-space:pre-line}
 .dtag{display:inline-block;align-self:flex-start;background:var(--band);color:#fff;font:700 16px/1 "Barlow Condensed",Barlow,sans-serif;padding:6px 10px;border-radius:8px}
@@ -359,8 +361,8 @@ const isRf=(k,t,s)=>!!rfIn(k,t,s)||!!rfOut(k,t,s);
 const rfIn=(k,t,s)=>DB.reqs.find(r=>r.by===t&&r.wk===k&&r.slots.includes(s)&&r.status!=='refused');
 const rfOut=(k,t,s)=>DB.reqs.find(r=>r.status==='done'&&r.who===t&&r.wk===k&&r.slots.includes(s)&&((DB.data[k]||{})[t]||[])[s]===r.site);
 const cut=(t,n)=>t&&t.length>n?t.slice(0,n).replace(/\s+\S*$/,'')+'…':t;
-const meetBadge=(k,vis,big)=>{if(big){const t=vis[0];if(isAbsOnly(t))return '';const m=meetOf(k,t);return `<button class="mbadge ${m.st}" data-act="meet" aria-label="Réunion ${MEET.time}">${MEET.time} ${m.st==='yes'?'✓':m.st==='no'?'✗':'exc.'}</button>`}
-  const L=WORK().map(t=>meetOf(k,t)),y=L.filter(m=>m.st==='yes').length;return `<button class="mbadge sum${y<L.length?' some':''}" data-act="meetlist" aria-label="Réunion ${MEET.time}">${MEET.time} · ${y}/${L.length}</button>`};
+const meetBadge=(k,vis,big)=>{if(big){const t=vis[0];const m=meetOf(k,t);return `<button class="mbadge ${m.st}" data-act="meet" aria-label="Réunion ${MEET.time}">${MEET.time} ${m.st==='yes'?'✓':m.st==='no'?'✗':'exc.'}</button>`}
+  const L=TECHS().map(t=>meetOf(k,t)),y=L.filter(m=>m.st==='yes').length;return `<button class="mbadge sum${y<L.length?' some':''}" data-act="meetlist" aria-label="Réunion ${MEET.time}">${MEET.time} · ${y}/${L.length}</button>`};
 const rfTxt=r=>r.status==='done'?'Renfort accepté : '+short(r.who)+' vient':'Renfort demandé, en attente';
 const rfCls=r=>r.status==='done'?'rfok':'rft';
 const MEET={day:3,time:'11h',label:'Réunion'};
@@ -443,7 +445,7 @@ function vMoi(){
   const det=[];for(let i=0;i<5;i++){if(ferie(k,i))continue;const fz=fused(k,t,i);[0,1].forEach(h=>{if(fz&&h)return;const s=i*2+h,n=noteOf(k,t,s),r=rfIn(k,t,s),o=rfOut(k,t,s);if(n||r||o){const p=det[det.length-1];if(h===1&&p&&p.i===i&&p.h===0&&p.n===n&&p.r===r&&p.o===o){p.h=2;return}det.push({i,h:fz?2:h,s,n,r,o})}})}
   return weekNav()+astCard()+(isAbsOnly(t)?`<div class="card">Ta ligne sert uniquement à indiquer tes absences.</div>`:`<div class="card ${empty?'warn':'ok'} stat"><span>${empty?`${empty} créneau${empty>1?'x':''} à remplir`:'Ta semaine est complète'}</span>${empty?`<button class="mini" data-act="copy">Recopier la semaine dernière</button>`:''}</div>`)+
   `<p class="demo" style="margin:0 2px 6px">Touche une case pour la modifier.</p>`+gridHTML(k,wd,[t],true)+
-  `<div class="lgrow"><button class="lgb" data-act="legend">Légende</button>${!ferie(k,MEET.day)&&!isAbsOnly(t)?(()=>{const m=meetOf(k,t);return `<button class="mtp ${m.st}" data-act="meet">Réunion jeu. ${dayDate(k,MEET.day).getDate()} · ${MEET.time} · <b>${m.st==='yes'?'Présent':m.st==='no'?'Absent':'Excusé'}</b></button>`})():''}</div>
+  `<div class="lgrow"><button class="lgb" data-act="legend">Légende</button>${!ferie(k,MEET.day)?(()=>{const m=meetOf(k,t);return `<button class="mtp ${m.st}" data-act="meet">Réunion jeu. ${dayDate(k,MEET.day).getDate()} · ${MEET.time} · <b>${m.st==='yes'?'Présent':m.st==='no'?'Absent':'Excusé'}</b></button>`})():''}</div>
   <div class="duo">${isAbsOnly(t)?'':'<button class="btn ghost" data-act="reqnew">Demander un renfort</button>'}<button class="btn ghost" data-act="cp">Prévenir d'une absence</button></div>
   ${det.length?`<div class="card"><b>Détails de la semaine</b>${det.map(x=>`<button class="detl" data-act="dinfo" data-t="${TECHS().indexOf(t)}" data-s="${x.s}"${x.h===2?' data-j="1"':''}><span class="dtags"><span class="dtag">${DAYS[x.i]} ${dayDate(k,x.i).getDate()} · ${x.h===2?'Journée':x.h?'Après-midi':'Matin'}</span>${wd[t][x.s]?chip(wd[t][x.s]):''}</span>${x.r?`<span class="${rfCls(x.r)}">${esc(rfTxt(x.r))}${x.r.note?' – '+esc(cut(x.r.note,60)):''}</span>`:''}${x.o?`<span class="rfok">Renfort demandé par ${esc(short(x.o.by))}${x.o.note?' – '+esc(cut(x.o.note,60)):''}</span>`:''}${x.n?`<span class="pl">${esc(x.n)}</span>`:''}</button>`).join('')}</div>`:''}
   ${isAbsOnly(t)?'':myReqs()}`;
@@ -477,9 +479,9 @@ function coverCard(){
 }
 function gridHTML(k,wd,vis,big){
   const used=new Set(),td=S.off===TOFF?TDAY:-1;
-  return `<div class="card gridcard"><table class="gl${big?' big':''}"><colgroup>${big?'':'<col class="n">'}${'<col>'.repeat(5)}</colgroup>
+  return `<div class="card gridcard"><table class="gl${big?' big':vis.length<=4?' roomy':vis.length<=6?' gmid':''}"><colgroup>${big?'':'<col class="n">'}${'<col>'.repeat(5)}</colgroup>
     <thead><tr>${big?'':'<th></th>'}${SH.map((d,i)=>`<th class="${i===td?'today':''}${ferie(k,i)?' fh':''}">${d}<b>${dayDate(k,i).getDate()}</b><small class="mo">${dayDate(k,i).toLocaleDateString('fr-FR',{month:'short'})}</small>${i===MEET.day&&!ferie(k,i)&&!big?meetBadge(k,vis,big):''}</th>`).join('')}</tr>
-    ${DB.reqs.some(r=>r.wk===k&&r.status==='open'&&(!big||r.by===vis[0]))?`<tr class="rfrow">${big?'':'<th>Renforts</th>'}${[0,1,2,3,4].map(i=>{const l=DB.reqs.filter(r=>r.wk===k&&(r.slots[0]>>1)===i&&r.status==='open'&&(!big||r.by===vis[0])),o=l.filter(r=>r.status==='open').length;
+    ${false&&DB.reqs.some(r=>r.wk===k&&r.status==='open'&&(!big||r.by===vis[0]))?`<tr class="rfrow">${big?'':'<th>Renforts</th>'}${[0,1,2,3,4].map(i=>{const l=DB.reqs.filter(r=>r.wk===k&&(r.slots[0]>>1)===i&&r.status==='open'&&(!big||r.by===vis[0])),o=l.filter(r=>r.status==='open').length;
       return `<th class="${i===td?'today':''}">${l.length?`<button class="rfb ${o?'open':'done'}" data-act="reqday" data-v="${i}">${o+' à pourvoir'}</button>`:''}</th>`}).join('')}</tr>`:''}</thead><tbody>
     ${vis.map((t,ri)=>{const ti=TECHS().indexOf(t),alt=ri%2===1;return `<tr class="${isAbsOnly(t)?'absrow':''}">${big?'':`<th class="${t===S.user.n?'me':''}">${esc(short(t))}</th>`}${[0,1,2,3,4].map(i=>{
       if(ferie(k,i))return `<td class="${i===td?'today':''}"><span class="hf fer" title="${esc(ferie(k,i))}">Férié</span></td>`;
@@ -493,8 +495,8 @@ function vEquipe(){
   const k=key(S.off),wd=week(S.off),vis=visible();
   let h=weekNav()+astCard()+coverCard();
   h+=`<div class="vrow"><div class="vseg"><button class="${S.flt==='fav'?'on':''}" data-act="flt" data-v="fav">★ Favoris</button><button class="${S.flt==='all'?'on':''}" data-act="flt" data-v="all">Tous</button>${S.user.r!=='lecture'?'<button data-act="favs">Choisir</button>':''}</div><button class="lgb" data-act="legend">Légende</button></div>`;
-  if(S.flt==='fav'&&!favs().length)h+=`<div class="card">Tu n'as pas encore choisi de favoris. Touche « Choisir… » pour cocher les collègues qui te concernent.</div>`;
-  h+=gridHTML(k,wd,vis,false);
+  if(S.flt==='fav'&&!favs().length)h+=`<div class="card">Tu n'as pas encore choisi de favoris. Touche « Choisir » pour cocher les collègues qui te concernent.</div>`;
+  if(vis.length)h+=gridHTML(k,wd,vis,false);
   if(isAdmin()&&WORK().reduce((n,t)=>n+(wd[t]||[]).filter(Boolean).length,0)<WORK().length*3)h=h.replace('<div class="pills">',`<div class="card"><b>Semaine presque vide.</b> Pour voir à quoi ça ressemble, remplis les cases vides avec des exemples (tu pourras tout effacer dans Réglages) :<button class="btn ghost" style="margin:10px 0 0" data-act="sample">Remplir avec des exemples</button></div><div class="pills">`);
   if(isAdmin()){
     const empty=vis.reduce((n,t)=>n+[...Array(10).keys()].filter(s=>isEmptySlot(k,t,s)).length,0);
@@ -658,10 +660,10 @@ function cellSheet(ti,s,j){lastCell=[ti,s,j];
   const t=TECHS()[ti],k=key(S.off),i=s>>1,line=week(S.off)[t];
   cur={off:S.off,t,i};pend=[line[i*2],line[i*2+1]];also=new Set();
   scope=(j||(!pend[0]&&!pend[1]))?2:(s&1);
-  const n=noteOf(k,t,i*2)||noteOf(k,t,i*2+1),lm=lastMod(k,t,s);
+  const n=scope===2?(noteOf(k,t,i*2)||noteOf(k,t,i*2+1)):noteOf(k,t,i*2+scope),lm=lastMod(k,t,s);
   const head=`<h3>${esc(t)} · ${DAYS[i]} ${dm(dayDate(k,i))}</h3>`;
   const rq=rfIn(k,t,i*2)||rfIn(k,t,i*2+1),ro=rfOut(k,t,i*2)||rfOut(k,t,i*2+1);
-  const last=(rq?`<div class="notebox ${rq.status==='done'?'rfokbox':'rfbox'}">${esc(rfTxt(rq))}${rq.note?' · '+esc(rq.note):''}</div>`:'')+(ro?`<div class="notebox rfokbox">En renfort à ${esc(label(ro.site))} (demandé par ${esc(short(ro.by))})${ro.note?' · '+esc(ro.note):''}</div>`:'')+(lm?`<p class="last">Modifié par ${esc(lm.who)}, ${stamp(lm.at)}</p>`:'');
+  const last=(rq?`<div class="notebox ${rq.status==='done'?'rfokbox':'rfbox'}">${esc(rfTxt(rq))}${rq.note?' · '+esc(rq.note):''}${isAdmin()&&rq.status==='open'?`<button class="btn" style="margin-top:10px;background:#e8771a" data-act="req" data-id="${rq.id}">Choisir qui envoyer</button>`:''}</div>`:'')+(ro?`<div class="notebox rfokbox">En renfort à ${esc(label(ro.site))} (demandé par ${esc(short(ro.by))})${ro.note?' · '+esc(ro.note):''}</div>`:'')+(lm?`<p class="last">Modifié par ${esc(lm.who)}, ${stamp(lm.at)}</p>`:'');
   if(!can(t)){openSheet(head+`<div class="pend"><div><small>Matin</small>${chip(pend[0],'Vide')}</div><div><small>Après-midi</small>${chip(pend[1],'Vide')}</div></div>${n?`<div class="notebox">${esc(n)}</div>`:''}${last}<button class="btn ghost" style="margin-top:16px" data-act="close">Fermer</button>`);return}
   const opt=x=>`<button type="button" class="opt" data-act="choose" data-v="${esc(x)}">${chip(x)}</button>`;
   openSheet(head+last+`
@@ -696,7 +698,7 @@ function saveDay(note){
   pend.forEach(v=>{if(v&&!CODES[v]&&!siteOf(v))CONF.sites.push({n:v})});
   closeSheet();let changed=0;
   const days=[i,...[...also].sort()];const broken=[];
-  const m=watchGaps(()=>days.forEach(di=>[0,1].forEach(h=>{const s=di*2+h,val=pend[h],nv=val?note:'',old=w[t][s],oldN=noteOf(k,t,s);if(old===val&&oldN===nv)return;changed++;w[t][s]=val;setNote(k,t,s,nv);
+  const m=watchGaps(()=>days.forEach(di=>[0,1].forEach(h=>{const s=di*2+h,val=pend[h],old=w[t][s],oldN=noteOf(k,t,s),nv=val?((scope===2||scope===h)?note:oldN):'';if(old===val&&oldN===nv)return;changed++;w[t][s]=val;setNote(k,t,s,nv);
     DB.reqs.forEach(r=>{if(r.status==='done'&&r.who===t&&r.wk===k&&r.slots.includes(s)&&val!==r.site&&!broken.includes(r)){broken.push(r)}});
     DB.hist.unshift({at:Date.now(),who:S.user.n,t,wk:k,s,from:old,to:val,note:oldN===nv?null:nv})})));
   broken.forEach(r=>{r.status='open';delete r.who;DB.alerts.unshift({at:Date.now(),txt:`${t} n'est plus en renfort à ${r.site} (${reqWhen(r)}, demandé par ${short(r.by)}) : renfort à nouveau à pourvoir`,seen:false})});
@@ -812,10 +814,10 @@ function meetSheet(){
   <button class="btn ${m.st==='no'?'danger':'ghost'}" style="margin-top:8px" data-act="meetno">${m.st==='no'?'Absence enregistrée · mettre à jour':'Prévenir de mon absence'}</button>`}`);
 }
 function meetList(){
-  const k=key(S.off),d=dayDate(k,MEET.day),L=WORK().map(t=>[t,meetOf(k,t)]);
+  const k=key(S.off),d=dayDate(k,MEET.day),L=TECHS().map(t=>[t,meetOf(k,t)]);
   const g=st=>L.filter(x=>x[1].st===st);
   const sec=(tt,l,f)=>l.length?`<div class="hd lgh">${tt} (${l.length})</div>${l.map(([t,m])=>`<div class="lgi"><b style="min-width:6em">${esc(short(t))}</b><span>${f(m)}</span></div>`).join('')}`:'';
-  const past=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12)<new Date(),me=hasLine()&&!isAbsOnly(S.user.n)&&!past?meetOf(k,S.user.n):null;
+  const past=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12)<new Date(),me=hasLine()&&!past?meetOf(k,S.user.n):null;
   openSheet(`<h3>${MEET.label} du jeudi ${dm(d)}, ${MEET.time}</h3>${past?'<div class="demo">Réunion passée</div>':''}
   ${me?(me.st==='exc'?`<div class="notebox">Toi : excusé (${esc(me.why)})</div>`:`<div class="card" style="margin:8px 0"><b>Toi : ${me.st==='yes'?'présent':'absent'}</b>
     <button class="btn ${me.st==='yes'?'':'ghost'}" style="margin-top:8px" data-act="meetyes">Je serai présent</button>
