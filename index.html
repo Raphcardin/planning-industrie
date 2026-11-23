@@ -612,10 +612,96 @@ function vHeures(){
     ${G.g?G.items.sort((a,b)=>b[1].tot-a[1].tot).map(([n,x])=>`<div class="sub"><span>${esc(n)} · ${Object.entries(x.by).map(([t,h])=>esc(short(t))+' '+fh(h)).join(', ')}</span><b>${fh(x.tot)}</b></div>`).join('')
       :`<div class="snote" style="margin:6px 0 0">${Object.entries(G.items[0][1].by).sort((a,b)=>b[1]-a[1]).map(([t,h])=>`${esc(short(t))} ${fh(h)}`).join(' · ')}</div>`}</div>`).join(''):'<div class="card">Aucune heure sur site pour cette période.</div>'}
   <div class="h2">Vers Excel</div>
-  <div class="duo"><button class="btn ghost" data-act="export">Résumé des heures</button><button class="btn" data-act="exportall">Extraction complète</button></div>
-  <p class="demo"><b>Résumé</b> : les totaux affichés ci-dessus. <b>Extraction complète</b> : une ligne par demi-journée (date, technicien, site, heures, détail), pour faire tes propres tableaux.</p>
+  <button class="btn" data-act="xlsx" style="margin-bottom:8px">Télécharger les heures par site (Excel)</button>
+  <div class="duo"><button class="btn ghost" data-act="export">Résumé à copier</button><button class="btn ghost" data-act="exportall">Extraction complète</button></div>
+  <p class="demo"><b>Heures par site</b> : un fichier Excel mis en forme, prêt à transmettre. <b>Résumé à copier</b> : les mêmes totaux, à coller en A1. <b>Extraction complète</b> : une ligne par demi-journée (date, technicien, site, heures, détail), pour faire tes propres tableaux.</p>
   <p class="demo">Estimation à partir du planning : matin 8h–12h = 4 h, après-midi 13h–16h45 = 3 h 45. Nuits comptées en nombre, absences en jours. Visible uniquement par Pierre et Raphaël.</p>`;
 }
+/* ---------- Fichier Excel mis en forme ---------- */
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRCT[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zipStore(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+  const u16=n=>[n&255,(n>>8)&255],u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];
+  files.forEach(([name,txt])=>{const nb=enc.encode(name),db=enc.encode(txt),cr=crc32(db);
+    const lh=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(cr),...u32(db.length),...u32(db.length),...u16(nb.length),...u16(0)]);
+    parts.push(lh,nb,db);
+    cen.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(cr),...u32(db.length),...u32(db.length),...u16(nb.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nb);
+    off+=lh.length+nb.length+db.length});
+  const cs=cen.reduce((n,a)=>n+a.length,0);
+  return new Blob([...parts,...cen,new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(cs),...u32(off),...u16(0)])],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const XCOL=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
+/* styles : 0 normal · 1 titre · 2 section · 3 en-tête · 4 texte · 5 heures · 6 jours/nombre · 7 total libellé · 8 total heures · 9 sous-titre gris · 10 total jours · 11 heures en gras (colonne Total) */
+const XSTYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="[=0]&quot;–&quot;;General"/><numFmt numFmtId="165" formatCode="[=0]&quot;–&quot;;0.00"/></numFmts>
+<fonts count="6"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="15"/><color rgb="FF1F3864"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF1F3864"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><i/><sz val="10"/><color rgb="FF7F7F7F"/><name val="Calibri"/></font></fonts>
+<fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3F8FD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBDD7EE"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2E75B6"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="22"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf numFmtId="2" fontId="4" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="164" fontId="4" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="2" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="165" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf numFmtId="2" fontId="4" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="2" fontId="3" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment indent="2"/></xf>
+<xf numFmtId="0" fontId="3" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="2" fontId="3" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function xlsxBlob(sheetName,rows,merges,widths){
+  const sd=rows.map((r,ri)=>r?`<row r="${ri+1}"${r.ht?` ht="${r.ht}" customHeight="1"`:''}>${r.c.map((c,ci)=>{if(c==null)return '';const ref=XCOL(ci)+(ri+1),[v,s]=Array.isArray(c)?c:[c,0];
+    if(v===''||v==null)return `<c r="${ref}" s="${s}"/>`;
+    return typeof v==='number'?`<c r="${ref}" s="${s}"><v>${Math.round(v*100)/100}</v></c>`:`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`}).join('')}</row>`:'').join('');
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sd}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/></worksheet>`;
+  const sn=xe(sheetName.slice(0,31).replace(/[\\\/?*\[\]:]/g,''));
+  return zipStore([
+    ['[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+    ['_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${sn}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/styles.xml',XSTYLES],
+    ['xl/worksheets/sheet1.xml',sheet]])}
+function recapRows(){
+  const {lb,SI}=computeHours(),plain=lb.replace(/<[^>]+>/g,'');
+  const rows=[],merges=[],R=(c,ht)=>{rows.push(c?{c,ht}:null);return rows.length};
+  const flt=[S.fs?S.fs.replace('g:',''):'',S.ft?short(S.ft):''].filter(Boolean);
+  R([['HEURES PAR SITE — '+plain.toUpperCase()+(flt.length?' — '+flt.join(' · ').toUpperCase():''),1]],24);merges.push('A1:C1');
+  R([['Généré le '+new Date().toLocaleDateString('fr-FR')+' · matin 4 h, après-midi 3 h 45',9]]);merges.push('A2:C2');
+  R(null);
+  R([['Site / technicien',3],['Groupe',3],['Heures',3]],22);
+  const blocks={};Object.entries(SI).forEach(([n,x])=>{const g=(siteOf(n)||{}).g||'';const k=g?'g:'+g:'s:'+n;const B=blocks[k]=blocks[k]||{g,tot:0,items:[]};B.tot+=x.tot;B.items.push([n,x])});
+  const bl=Object.values(blocks).sort((a,b)=>b.tot-a.tot);let all=0;
+  if(!bl.length)R([['Aucune heure sur site pour cette période',4]]);
+  bl.forEach(B=>{all+=B.tot;
+    B.items.sort((a,b)=>b[1].tot-a[1].tot).forEach(([n,x])=>{
+      R([[n,7],[B.g||'',7],[x.tot,8]],18);
+      Object.entries(x.by).sort((a,b)=>b[1]-a[1]).forEach(([tn,h])=>R([[short(tn),19],['',4],[h,5]]));R([],8)});
+    if(B.g&&B.items.length>1){R([['Total '+B.g,20],['',20],[B.tot,21]],20);R([],14)}});
+  if(bl.length){const r=R([['TOTAL SITES',3],['',3],[all,18]],20);merges.push('A'+r+':B'+r)}
+  const sn=Object.keys(SI);
+  const widths=[Math.max(24,...sn.map(n=>n.length+4)),Math.max(14,...bl.map(B=>B.g.length+2)),12];
+  const per=S.per==='week'?'S'+isoWeek(monday(S.hoff)):plain.replace(/\s+/g,'_');
+  return {rows,merges,widths,name:'Heures par site '+(S.per==='week'?per:plain),file:('Heures_par_site_'+per+(flt.length?'_'+flt.join('_'):'')).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9_-]+/g,'_')+'.xlsx'};
+}
+function downloadXlsx(){
+  try{const r=recapRows(),blob=xlsxBlob(r.name,r.rows,r.merges,r.widths),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=r.file;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);toast('Fichier Excel téléchargé : '+r.file)}
+  catch(e){console.error(e);toast('Le fichier n’a pas pu être créé : utilise « Résumé des heures »')}}
+
 function exportText(){
   const {lb,H,SI}=computeHours(),f=h=>String(h).replace('.',',');
   let o='Période\t'+lb.replace(/<[^>]+>/g,'')+'\n\nTechnicien\tSites (h)\tBureau (h)\tFormation (h)\tDispo (h)\tTotal (h)\tNuits\tCP (j)\tRTT (j)\tRécup (j)\tAbsent (j)\n';
@@ -1021,6 +1107,7 @@ document.addEventListener('click',e=>{
   case 'copy':{const t=S.user.n,k=key(S.off),w=week(S.off),p=week(S.off-1);let n=0;
     w[t].forEach((x,s)=>{if(!x&&p[t][s]&&!ferie(k,s>>1)){w[t][s]=p[t][s];setNote(k,t,s,noteOf(key(S.off-1),t,s));n++;DB.hist.unshift({at:Date.now(),who:t,t,wk:k,s,from:'',to:p[t][s],note:null})}});
     save();render();toast(n?`${n} case${n>1?'s':''} recopiée${n>1?'s':''}`:'Rien à recopier')}break;
+  case 'xlsx':downloadXlsx();break;
   case 'export':exportSheet('Résumé des heures',exportText());break;
   case 'exportall':exportSheet('Extraction complète',exportAll());break;
   case 'xcopy':copyOrShow(XTXT,'xbox','Copié ! Colle-le maintenant dans Excel');break;
