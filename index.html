@@ -402,7 +402,9 @@ const rfOut=(k,t,s)=>DB.reqs.find(r=>r.status==='done'&&r.who===t&&r.wk===k&&r.s
 const cut=(t,n)=>t&&t.length>n?t.slice(0,n).replace(/\s+\S*$/,'')+'…':t;
 const meetBadge=(k,vis,big)=>{if(big){const t=vis[0];const m=meetOf(k,t);return `<button class="mbadge ${m.st}" data-act="meet" aria-label="Réunion ${MEET.time}">${MEET.time} ${m.st==='yes'?'✓':m.st==='no'?'✗':esc(m.why)}</button>`}
   const L=TECHS().map(t=>meetOf(k,t)),y=L.filter(m=>m.st==='yes').length;return `<button class="mbadge sum${y<L.length?' some':''}" data-act="meetlist" aria-label="Réunion ${MEET.time}">${MEET.time} · ${y}/${L.length}</button>`};
-const rfTxt=r=>r.status==='done'?'Renfort pour '+label(r.site)+' : '+short(r.who)+' vient':'Renfort demandé pour '+label(r.site)+', en attente';
+const rfTxt=r=>r.status==='done'?'Renfort · '+label(r.site)+' : '+short(r.who)+' vient':'Renfort demandé · '+label(r.site)+', en attente';
+const rfRepl=r=>{const v=((DB.data[r.wk]||{})[r.by]||[])[r.slots[0]];if(v===r.site)return false;if(v&&(ABSC.includes(v)||v==='FORM'||v==='NUIT'))return true;return CONF.req.some(q=>q.site===r.site&&q.tit.includes(r.by))};
+const rfGo=r=>rfRepl(r)?'Remplacement de '+short(r.by)+' · '+label(r.site):'Renfort · '+label(r.site)+' (demandé par '+short(r.by)+')';
 const rfCls=r=>r.status==='done'?'rfok':'rft';
 const MEET={day:3,time:'11h',label:'Réunion'};
 function meetOf(k,t){if(ferie(k,MEET.day))return {st:'none'};const v=((DB.data[k]||{})[t]||[])[MEET.day*2];
@@ -492,7 +494,7 @@ function vMoi(){
   `<p class="demo" style="margin:0 2px 6px">Touche une case pour la modifier.</p>`+gridHTML(k,wd,[t],true)+
   `<div class="lgrow"><button class="lgb" data-act="legend">Légende</button>${!ferie(k,MEET.day)?(()=>{const m=meetOf(k,t);return `<button class="mtp ${m.st}" data-act="meet">Réunion jeu. ${dayDate(k,MEET.day).getDate()} · ${MEET.time} · <b>${m.st==='yes'?'Présent':m.st==='no'?'Absent':esc(m.why)}</b></button>`})():''}</div>
   <div class="duo">${isAbsOnly(t)?'':'<button class="btn ghost" data-act="reqnew">Demander un renfort</button>'}<button class="btn ghost" data-act="cp">Prévenir d'une absence</button></div>
-  ${det.length?`<div class="card"><b>Détails de la semaine</b>${det.map(x=>`<button class="detl" data-act="dinfo" data-t="${TECHS().indexOf(t)}" data-s="${x.s}"${x.h===2?' data-j="1"':''}><span class="dtags"><span class="dtag">${DAYS[x.i]} ${dayDate(k,x.i).getDate()} · ${x.h===2?'Journée':x.h?'Après-midi':'Matin'}</span>${wd[t][x.s]?chip(wd[t][x.s]):''}</span>${x.r?`<span class="${rfCls(x.r)}">${esc(rfTxt(x.r))}${x.r.note?' – '+esc(cut(x.r.note,60)):''}</span>`:''}${x.o?`<span class="rfok">Renfort demandé par ${esc(short(x.o.by))}${x.o.note?' – '+esc(cut(x.o.note,60)):''}</span>`:''}${x.n?`<span class="pl">${esc(x.n)}</span>`:''}</button>`).join('')}</div>`:''}
+  ${det.length?`<div class="card"><b>Détails de la semaine</b>${det.map(x=>`<button class="detl" data-act="dinfo" data-t="${TECHS().indexOf(t)}" data-s="${x.s}"${x.h===2?' data-j="1"':''}><span class="dtags"><span class="dtag">${DAYS[x.i]} ${dayDate(k,x.i).getDate()} · ${x.h===2?'Journée':x.h?'Après-midi':'Matin'}</span>${wd[t][x.s]?chip(wd[t][x.s]):''}</span>${x.r?`<span class="${rfCls(x.r)}">${esc(rfTxt(x.r))}${x.r.note?' – '+esc(cut(x.r.note,60)):''}</span>`:''}${x.o?`<span class="rfok">${esc(rfGo(x.o))}${x.o.note?' – '+esc(cut(x.o.note,60)):''}</span>`:''}${x.n?`<span class="pl">${esc(x.n)}</span>`:''}</button>`).join('')}</div>`:''}
   ${isAbsOnly(t)?'':myReqs()}`;
 }
 const pastBox=(l,f)=>`<details class="card pastrf"><summary><b>Ces 30 derniers jours</b> <span class="demo">(${l.length})</span></summary>${l.map(f).join('')}</details>`;
@@ -508,7 +510,7 @@ function vRf(){
     h+=`<div class="h2">À traiter${open.length?` <span style="color:#e8771a">(${open.length})</span>`:''}</div><div class="card">${open.length?open.map(r=>`<button class="rqb hot" data-act="req" data-id="${r.id}"><span><b>${esc(label(r.site))}</b><small>${reqWhen(r)} · demandé par ${esc(short(r.by))}${r.ent?' (saisi par '+esc(short(r.ent))+')':''}${r.note?' · '+esc(r.note):''}</small></span><span class="st go">Choisir</span></button>`).join(''):'<p class="demo" style="margin:0">Aucune demande en attente.</p>'}</div>`}
   if(hasLine()){
     h+=sec('Mes demandes',up.filter(r=>r.by===me),'Tu n\'as pas de demande en cours.',r=>row(r,false));
-    h+=sec('Où je vais en renfort',up.filter(r=>r.status==='done'&&r.who===me),'Personne ne t\'a demandé en renfort pour l\'instant.',r=>`<div class="rq"><span><b>${esc(label(r.site))}</b><small style="display:block;color:var(--mute);font-size:13px">${reqWhen(r)} · demandé par ${esc(short(r.by))}${r.note?' · '+esc(r.note):''}</small></span><span class="st done">J'y vais</span></div>`)}
+    h+=sec('Où je vais en renfort',up.filter(r=>r.status==='done'&&r.who===me),'Personne ne t\'a demandé en renfort pour l\'instant.',r=>`<div class="rq"><span><b>${esc(rfGo(r))}</b><small style="display:block;color:var(--mute);font-size:13px">${reqWhen(r)}${r.note?' · '+esc(r.note):''}</small></span><span class="st done">J'y vais</span></div>`)}
   if(isAdmin()){h+=sec('Toutes les demandes à venir',up.filter(r=>r.status!=='open'),'Rien de prévu.',r=>row(r,true));
     if(past.length)h+=pastBox(past,r=>row(r,true))}
   else{const mp=past.filter(r=>r.by===me||r.who===me);if(mp.length)h+=pastBox(mp,r=>row(r,r.by!==me))}
@@ -825,7 +827,7 @@ function cellSheet(ti,s,j){lastCell=[ti,s,j];
   const n=scope===2?(noteOf(k,t,i*2)||noteOf(k,t,i*2+1)):noteOf(k,t,i*2+scope),lm=lastMod(k,t,s);
   const head=`<h3>${esc(t)} · ${DAYS[i]} ${dm(dayDate(k,i))}</h3>`;
   const rq=rfIn(k,t,i*2)||rfIn(k,t,i*2+1),ro=rfOut(k,t,i*2)||rfOut(k,t,i*2+1);
-  const last=(rq?`<div class="notebox ${rq.status==='done'?'rfokbox':'rfbox'}">${esc(rfTxt(rq))}${rq.note?' · '+esc(rq.note):''}${isAdmin()&&rq.status==='open'?`<button class="btn" style="margin-top:10px;background:#e8771a" data-act="req" data-id="${rq.id}">Choisir qui envoyer</button>`:''}</div>`:'')+(ro?`<div class="notebox rfokbox">En renfort à ${esc(label(ro.site))} (demandé par ${esc(short(ro.by))})${ro.note?' · '+esc(ro.note):''}</div>`:'')+(lm?`<p class="last">Modifié par ${esc(lm.who)}, ${stamp(lm.at)}</p>`:'');
+  const last=(rq?`<div class="notebox ${rq.status==='done'?'rfokbox':'rfbox'}">${esc(rfTxt(rq))}${rq.note?' · '+esc(rq.note):''}${isAdmin()&&rq.status==='open'?`<button class="btn" style="margin-top:10px;background:#e8771a" data-act="req" data-id="${rq.id}">Choisir qui envoyer</button>`:''}</div>`:'')+(ro?`<div class="notebox rfokbox">${esc(rfGo(ro))}${ro.note?'<br>'+esc(ro.note):''}</div>`:'')+(lm?`<p class="last">Modifié par ${esc(lm.who)}, ${stamp(lm.at)}</p>`:'');
   if(!can(t)){openSheet(head+`<div class="pend"><div><small>Matin</small>${chip(pend[0],'Vide')}</div><div><small>Après-midi</small>${chip(pend[1],'Vide')}</div></div>${n?`<div class="notebox">${esc(n)}</div>`:''}${last}<button class="btn ghost" style="margin-top:16px" data-act="close">Fermer</button>`);return}
   const opt=x=>`<button type="button" class="opt" data-act="choose" data-v="${esc(x)}">${chip(x)}</button>`;
   openSheet(head+last+`
