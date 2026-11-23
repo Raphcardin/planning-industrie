@@ -577,6 +577,12 @@ function periodDays(){
   for(const d=new Date(m0);d.getMonth()===m0.getMonth();d.setDate(d.getDate()+1)){const i=(d.getDay()+6)%7;if(i<5)days.push({k:isoMon(d),i})}
   const l=m0.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});return {label:l[0].toUpperCase()+l.slice(1),days};
 }
+function fsOpts(){const grps=[...new Set(CONF.sites.map(x=>x.g).filter(Boolean))].sort((a,b)=>a.localeCompare(b)),o=[];
+  grps.forEach(g=>{o.push([g+' (tous)','g:'+g]);CONF.sites.filter(x=>x.g===g).sort((a,b)=>a.n.localeCompare(b.n)).forEach(x=>o.push([g+' · '+x.n,x.n]))});
+  CONF.sites.filter(x=>!x.g).sort((a,b)=>a.n.localeCompare(b.n)).forEach(x=>o.push([x.n,x.n]));return o}
+function pickFrom(txt,opts){const q=txt.trim().toLowerCase();if(!q)return '';const ex=opts.find(o=>o[0].toLowerCase()===q);if(ex)return ex[1];
+  const st=opts.filter(o=>o[0].toLowerCase().startsWith(q)||o[0].toLowerCase().split(' · ').pop().startsWith(q));const one=l=>{const u=[...new Set(l.map(o=>o[1]))];return u.length===1?u[0]:undefined};let r=one(st);if(r!==undefined)return r;
+  r=one(opts.filter(o=>o[0].toLowerCase().includes(q)));return r===undefined?null:r}
 const siteMatch=v=>!S.fs||(S.fs.startsWith('g:')?((siteOf(v)||{}).g===S.fs.slice(2)):v===S.fs);
 const techList=()=>S.ft?[S.ft]:WORK();
 function computeHours(){
@@ -598,8 +604,8 @@ function vHeures(){
   const jj=v=>v?String(v).replace('.',',')+' j':'–';
   return `<div class="seg"><button class="${S.per==='week'?'on':''}" data-act="per" data-v="week">Semaine</button><button class="${S.per==='month'?'on':''}" data-act="per" data-v="month">Mois</button><button class="${S.per==='year'?'on':''}" data-act="per" data-v="year">Année</button></div>
   <div class="weeknav"><button data-act="pnav" data-v="-1" aria-label="Période précédente">‹</button><div>${lb}</div><button data-act="pnav" data-v="1" aria-label="Période suivante">›</button></div>
-  <div class="card filt"><div class="duo2" style="grid-template-columns:1fr 1fr"><div><label for="ft" style="margin-top:0">Technicien</label><select id="ft" data-ch="ft"><option value="">Tous</option>${WORK().map(t=>`<option ${S.ft===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
-    <div><label for="fs" style="margin-top:0">Site</label><select id="fs" data-ch="fs"><option value="">Tous</option>${grps.map(g=>`<option value="g:${esc(g)}" ${S.fs==='g:'+g?'selected':''}>${esc(g)} (tous)</option>`).join('')}${CONF.sites.slice().sort((a,b)=>a.n.localeCompare(b.n)).map(x=>`<option value="${esc(x.n)}" ${S.fs===x.n?'selected':''}>${esc(label(x.n))}</option>`).join('')}</select></div></div>
+  <div class="card filt"><div class="duo2" style="grid-template-columns:1fr 1fr"><div><label for="ft" style="margin-top:0">Technicien</label><input id="ft" data-ch="fti" type="search" list="ftl" autocomplete="off" placeholder="Tous · tape un nom" value="${esc(S.ft)}"><datalist id="ftl">${WORK().map(t=>`<option value="${esc(t)}">`).join('')}</datalist></div>
+    <div><label for="fs" style="margin-top:0">Site</label><input id="fs" data-ch="fsi" type="search" list="fsl" autocomplete="off" placeholder="Tous · tape un site" value="${esc(S.fs?fsOpts().find(o=>o[1]===S.fs)?.[0]||'':'')}"><datalist id="fsl">${fsOpts().map(o=>`<option value="${esc(o[0])}">`).join('')}</datalist></div></div>
     ${S.ft||S.fs?'<button class="mini" style="margin-top:10px" data-act="fclr">Tout afficher</button>':''}</div>
   <div class="card kpi"><span>Heures sur ${S.fs?esc(S.fs.startsWith('g:')?S.fs.slice(2):label(S.fs)):'sites'}${S.ft?', '+esc(S.ft):", toute l'équipe"}</span><b>${fh(all)}</b></div>
   ${empty?`<div class="card warn">${empty} demi-journée${empty>1?'s':''} non remplie${empty>1?'s':''} : les heures peuvent être sous-estimées.</div>`:''}
@@ -1132,7 +1138,11 @@ document.addEventListener('click',e=>{
   }
 });
 document.addEventListener('click',e=>{const x=e.target;if(x&&x.type==='date'){try{x.showPicker()}catch(er){}}});
-document.addEventListener('change',e=>{const x=e.target;if(x.dataset&&x.dataset.ch==='hp'){S.hp=x.value;render()}else if(x.dataset&&x.dataset.ch==='ft'){S.ft=x.value;render()}else if(x.dataset&&x.dataset.ch==='fs'){S.fs=x.value;render()}});
+document.addEventListener('keydown',e=>{const x=e.target;if(e.key==='Enter'&&x.dataset&&(x.dataset.ch==='fti'||x.dataset.ch==='fsi')){e.preventDefault();x.blur()}});
+document.addEventListener('input',e=>{const x=e.target;if(!x.dataset||(x.dataset.ch!=='fti'&&x.dataset.ch!=='fsi'))return;
+  const opts=x.dataset.ch==='fti'?WORK().map(t=>[t,t]):fsOpts(),q=x.value.trim().toLowerCase(),ex=q?opts.find(o=>o[0].toLowerCase()===q):['',''];
+  if(ex){if(x.dataset.ch==='fti')S.ft=ex[1];else S.fs=ex[1];render()}});
+document.addEventListener('change',e=>{const x=e.target;if(x.dataset&&x.dataset.ch==='hp'){S.hp=x.value;render()}else if(x.dataset&&x.dataset.ch==='fti'){const r=pickFrom(x.value,WORK().map(t=>[t,t]).concat(WORK().map(t=>[short(t),t])));if(r===null){toast('Plusieurs ou aucun technicien : choisis dans la liste');return}S.ft=r;render()}else if(x.dataset&&x.dataset.ch==='fsi'){const r=pickFrom(x.value,fsOpts());if(r===null){toast('Plusieurs ou aucun site : choisis dans la liste');return}S.fs=r;render()}});
 async function boot(){
   render();
   if(sb){try{const {data,error}=await sb.from('team').select('email,name,role,ord').order('ord');if(error)throw error;TEAM=data||[]}catch(e){console.error(e)}
