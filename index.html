@@ -30,6 +30,7 @@ button{cursor:pointer}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .top{position:sticky;top:0;z-index:5;background:var(--band);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px}
 .top h1{font:700 24px/1 "Barlow Condensed",sans-serif;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .zm{display:none}
 .top button{font-size:14px;background:rgba(255,255,255,.13);border:0;border-radius:99px;padding:8px 12px;color:#fff;min-height:40px}
 main{max-width:640px;margin:0 auto;padding:14px 12px 110px}
 main.nonav{padding-bottom:30px}
@@ -260,6 +261,7 @@ main.t-moi{max-width:980px}main.t-reglages,main.t-hist{max-width:820px}
 .gridcard{padding:12px 10px}
 .ht{font-size:16px}
 .swh{display:none}
+.top .zm{display:flex;gap:4px;margin-right:6px}.top .zm button{min-width:44px;display:flex;align-items:center;justify-content:center}
 .ast .astw{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:center}.ast .asth{gap:16px;padding-right:8px}.ast .astl{padding:9px 14px}
 .sheet{bottom:auto;top:50%;border-radius:18px;transform:translateY(-50%) scale(.96);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;max-height:86vh}
 .open .sheet{transform:translateY(-50%);opacity:1;pointer-events:auto}
@@ -464,6 +466,10 @@ function jumpSheet(){
   <button class="btn" style="margin-top:14px">Afficher cette semaine</button></form><button class="btn ghost" data-act="jtoday">Revenir à cette semaine</button>`);
   document.getElementById('jf').onsubmit=e=>{e.preventDefault();const d=new Date(document.getElementById('jd').value+'T12:00:00');if(isNaN(d))return;S.off=offOf(isoMon(d));closeSheet();render()};
 }
+const zoomLv=()=>{try{return +localStorage.getItem(STORE+'-zoom')||1}catch(x){return 1}};
+function applyZoom(){document.documentElement.style.zoom=matchMedia('(min-width:1000px)').matches&&zoomLv()!==1?zoomLv():'';fitCells()}
+addEventListener('resize',()=>{if(!window.__zr){window.__zr=1;requestAnimationFrame(()=>{window.__zr=0;applyZoom()})}});
+applyZoom();
 function astOf(k){const a=DB.ast[k]||[],x=a[2]&&typeof a[2]==='object'?a[2]:null;
   const f=x&&x.f?new Date(x.f+'T12:00:00'):dayDate(k,3),t=x&&x.t?new Date(x.t+'T12:00:00'):dayDate(k,10);
   return {n:a.slice(0,2).filter(v=>v&&typeof v==='string'),f,t,free:!!x}}
@@ -659,7 +665,7 @@ function render(){
   }
   if(!LOADED){app.innerHTML=`<div class="top"><h1>Planning Industrie</h1></div><div class="login"><p class="demo">Chargement du planning…</p>${!NET?'<div class="notebox">'+esc(NETMSG)+'</div><button class="btn" data-act="retry">Réessayer</button>':''}</div>`;return}
   const TB=tabs(),v={moi:vMoi,equipe:vEquipe,heures:vHeures,hist:vHist,reglages:vReglages}[S.tab]();
-  app.innerHTML=`<div id="netbar" class="netbar" ${NET?'hidden':''}>${esc(NETMSG)}</div><div class="top"><h1>${LBL[S.tab]}</h1>${isAdmin()?`<button data-act="tab" data-v="${S.tab==='reglages'?'equipe':'reglages'}">${S.tab==='reglages'?'Fermer':'Réglages'}</button>`:''}<button data-act="out" aria-label="Changer de profil">${esc(short(S.user.n))} ▾</button></div>
+  app.innerHTML=`<div id="netbar" class="netbar" ${NET?'hidden':''}>${esc(NETMSG)}</div><div class="top"><h1>${LBL[S.tab]}</h1><span class="zm"><button data-act="zoom" data-v="-1" aria-label="Réduire l'affichage" title="Réduire l'affichage"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l5.5 5.5M7 10h6"/></svg></button><button data-act="zoom" data-v="1" aria-label="Agrandir l'affichage" title="Agrandir l'affichage"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l5.5 5.5M7 10h6M10 7v6"/></svg></button></span>${isAdmin()?`<button data-act="tab" data-v="${S.tab==='reglages'?'equipe':'reglages'}">${S.tab==='reglages'?'Fermer':'Réglages'}</button>`:''}<button data-act="out" aria-label="Changer de profil">${esc(short(S.user.n))} ▾</button></div>
   <main class="t-${S.tab} ${TB.length>1?'':'nonav'}">${v}<p class="demo">Planning partagé de l'équipe.</p></main>
   ${TB.length>1?`<nav>${TB.map(k=>`<button class="${S.tab===k?'on':''}" data-act="tab" data-v="${k}">${ICON[k]}${LBL[k]}</button>`).join('')}</nav>`:''}`;
   fitCells();
@@ -974,6 +980,7 @@ document.addEventListener('click',e=>{
   case 'save':saveDay(document.getElementById('note').value.trim());break;
   case 'clear':pend=['',''];saveDay('');break;
   case 'close':closeSheet();break;
+  case 'zoom':{const Z=[.6,.7,.8,.9,1,1.1,1.2];let i=Z.indexOf(zoomLv());i=Math.max(0,Math.min(Z.length-1,(i<0?4:i)+(+v)));try{localStorage.setItem(STORE+'-zoom',Z[i])}catch(x){}applyZoom();toast('Affichage '+Math.round(Z[i]*100)+' %');break}
   case 'ast':astSheet();break;
   case 'cp':absSheet();break;
   case 'reqnew':reqSheet();break;
