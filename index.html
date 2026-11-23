@@ -402,7 +402,7 @@ const rfOut=(k,t,s)=>DB.reqs.find(r=>r.status==='done'&&r.who===t&&r.wk===k&&r.s
 const cut=(t,n)=>t&&t.length>n?t.slice(0,n).replace(/\s+\S*$/,'')+'…':t;
 const meetBadge=(k,vis,big)=>{if(big){const t=vis[0];const m=meetOf(k,t);return `<button class="mbadge ${m.st}" data-act="meet" aria-label="Réunion ${MEET.time}">${MEET.time} ${m.st==='yes'?'✓':m.st==='no'?'✗':esc(m.why)}</button>`}
   const L=TECHS().map(t=>meetOf(k,t)),y=L.filter(m=>m.st==='yes').length;return `<button class="mbadge sum${y<L.length?' some':''}" data-act="meetlist" aria-label="Réunion ${MEET.time}">${MEET.time} · ${y}/${L.length}</button>`};
-const rfTxt=r=>r.status==='done'?'Renfort accepté : '+short(r.who)+' vient':'Renfort demandé, en attente';
+const rfTxt=r=>r.status==='done'?'Renfort pour '+label(r.site)+' : '+short(r.who)+' vient':'Renfort demandé pour '+label(r.site)+', en attente';
 const rfCls=r=>r.status==='done'?'rfok':'rft';
 const MEET={day:3,time:'11h',label:'Réunion'};
 function meetOf(k,t){if(ferie(k,MEET.day))return {st:'none'};const v=((DB.data[k]||{})[t]||[])[MEET.day*2];
