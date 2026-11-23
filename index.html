@@ -167,14 +167,14 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--panel);bor
 nav button{flex:1;border:0;background:none;min-height:54px;border-radius:12px;font-weight:600;font-size:13px;color:var(--mute);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 nav button.on{color:var(--ink);background:light-dark(#e6e9eb,#262b2f)}
 nav svg{width:22px;height:22px}
-nav button{position:relative}@media(max-width:999px){nav.n5 button{font-size:12px;white-space:nowrap;padding:0 2px}}.pastrf summary{cursor:pointer;min-height:32px;display:flex;align-items:center;gap:6px}.pastrf summary .demo{margin:0}.card>.rq:first-child{border-top:0;margin-top:0;padding-top:2px}.rq>span:first-child{flex:1;min-width:0}.rq>.st{flex-shrink:0}.nb{position:absolute;top:3px;left:calc(50% + 6px);background:#e8771a;color:#fff;border-radius:99px;font-size:11px;font-weight:700;line-height:1;min-width:18px;padding:3px 5px;text-align:center}
+nav button{position:relative}@media(max-width:999px){nav.n5 button{font-size:12px;white-space:nowrap;padding:0 2px}}.filt input::placeholder{color:var(--ink);font-weight:700;opacity:1}.pastrf summary{cursor:pointer;min-height:32px;display:flex;align-items:center;gap:6px}.pastrf summary .demo{margin:0}.card>.rq:first-child{border-top:0;margin-top:0;padding-top:2px}.rq>span:first-child{flex:1;min-width:0}.rq>.st{flex-shrink:0}.nb{position:absolute;top:3px;left:calc(50% + 6px);background:#e8771a;color:#fff;border-radius:99px;font-size:11px;font-weight:700;line-height:1;min-width:18px;padding:3px 5px;text-align:center}
 .login{max-width:440px;margin:0 auto;padding:22px 16px 40px}
 .login h2{font:700 34px/1.05 "Barlow Condensed",sans-serif;margin:0 0 6px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:16px 0}
 .grid button{min-height:54px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:600;font-size:16px}
 .grid button.on{border:2px solid var(--accent);background:var(--today)}
 .grid small{display:block;font-weight:400;font-size:12px;color:var(--mute)}
-input[type=password],input[type=text],input[type=date],select{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--panel);padding:0 12px;font-size:16px}
+input[type=password],input[type=text],input[type=date],input[type=search],select{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--panel);padding:0 12px;font-size:16px}
 textarea{width:100%;border-radius:12px;border:1px solid var(--line);background:var(--panel);padding:10px 12px;font:16px/1.4 Barlow,sans-serif;resize:vertical}
 label{font-weight:600;font-size:14px;display:block;margin:10px 0 6px}
 .veil{position:fixed;inset:0;background:rgba(5,20,25,.55);z-index:10;display:none}
@@ -580,7 +580,7 @@ function periodDays(){
 function fsOpts(){const grps=[...new Set(CONF.sites.map(x=>x.g).filter(Boolean))].sort((a,b)=>a.localeCompare(b)),o=[];
   grps.forEach(g=>{o.push([g+' (tous)','g:'+g]);CONF.sites.filter(x=>x.g===g).sort((a,b)=>a.n.localeCompare(b.n)).forEach(x=>o.push([g+' · '+x.n,x.n]))});
   CONF.sites.filter(x=>!x.g).sort((a,b)=>a.n.localeCompare(b.n)).forEach(x=>o.push([x.n,x.n]));return o}
-function pickFrom(txt,opts){const q=txt.trim().toLowerCase();if(!q)return '';const ex=opts.find(o=>o[0].toLowerCase()===q);if(ex)return ex[1];
+function pickFrom(txt,opts){const q=txt.trim().toLowerCase();if(!q||q==='tous')return '';const ex=opts.find(o=>o[0].toLowerCase()===q);if(ex)return ex[1];
   const st=opts.filter(o=>o[0].toLowerCase().startsWith(q)||o[0].toLowerCase().split(' · ').pop().startsWith(q));const one=l=>{const u=[...new Set(l.map(o=>o[1]))];return u.length===1?u[0]:undefined};let r=one(st);if(r!==undefined)return r;
   r=one(opts.filter(o=>o[0].toLowerCase().includes(q)));return r===undefined?null:r}
 const siteMatch=v=>!S.fs||(S.fs.startsWith('g:')?((siteOf(v)||{}).g===S.fs.slice(2)):v===S.fs);
@@ -604,8 +604,8 @@ function vHeures(){
   const jj=v=>v?String(v).replace('.',',')+' j':'–';
   return `<div class="seg"><button class="${S.per==='week'?'on':''}" data-act="per" data-v="week">Semaine</button><button class="${S.per==='month'?'on':''}" data-act="per" data-v="month">Mois</button><button class="${S.per==='year'?'on':''}" data-act="per" data-v="year">Année</button></div>
   <div class="weeknav"><button data-act="pnav" data-v="-1" aria-label="Période précédente">‹</button><div>${lb}</div><button data-act="pnav" data-v="1" aria-label="Période suivante">›</button></div>
-  <div class="card filt"><div class="duo2" style="grid-template-columns:1fr 1fr"><div><label for="ft" style="margin-top:0">Technicien</label><input id="ft" data-ch="fti" type="search" list="ftl" autocomplete="off" placeholder="Tous · tape un nom" value="${esc(S.ft)}"><datalist id="ftl">${WORK().map(t=>`<option value="${esc(t)}">`).join('')}</datalist></div>
-    <div><label for="fs" style="margin-top:0">Site</label><input id="fs" data-ch="fsi" type="search" list="fsl" autocomplete="off" placeholder="Tous · tape un site" value="${esc(S.fs?fsOpts().find(o=>o[1]===S.fs)?.[0]||'':'')}"><datalist id="fsl">${fsOpts().map(o=>`<option value="${esc(o[0])}">`).join('')}</datalist></div></div>
+  <div class="card filt"><div class="duo2" style="grid-template-columns:1fr 1fr"><div><label for="ft" style="margin-top:0">Technicien</label><input id="ft" data-ch="fti" type="search" list="ftl" autocomplete="off" placeholder="Tous" title="Tape un nom ou choisis dans la liste" value="${esc(S.ft)}"><datalist id="ftl"><option value="Tous">${WORK().map(t=>`<option value="${esc(t)}">`).join('')}</datalist></div>
+    <div><label for="fs" style="margin-top:0">Site</label><input id="fs" data-ch="fsi" type="search" list="fsl" autocomplete="off" placeholder="Tous" title="Tape un site ou choisis dans la liste" value="${esc(S.fs?fsOpts().find(o=>o[1]===S.fs)?.[0]||'':'')}"><datalist id="fsl"><option value="Tous">${fsOpts().map(o=>`<option value="${esc(o[0])}">`).join('')}</datalist></div></div>
     ${S.ft||S.fs?'<button class="mini" style="margin-top:10px" data-act="fclr">Tout afficher</button>':''}</div>
   <div class="card kpi"><span>Heures sur ${S.fs?esc(S.fs.startsWith('g:')?S.fs.slice(2):label(S.fs)):'sites'}${S.ft?', '+esc(S.ft):", toute l'équipe"}</span><b>${fh(all)}</b></div>
   ${empty?`<div class="card warn">${empty} demi-journée${empty>1?'s':''} non remplie${empty>1?'s':''} : les heures peuvent être sous-estimées.</div>`:''}
@@ -619,8 +619,7 @@ function vHeures(){
       :`<div class="snote" style="margin:6px 0 0">${Object.entries(G.items[0][1].by).sort((a,b)=>b[1]-a[1]).map(([t,h])=>`${esc(short(t))} ${fh(h)}`).join(' · ')}</div>`}</div>`).join(''):'<div class="card">Aucune heure sur site pour cette période.</div>'}
   <div class="h2">Vers Excel</div>
   <button class="btn" data-act="xlsx" style="margin-bottom:8px">Télécharger les heures par site (Excel)</button>
-  <div class="duo"><button class="btn ghost" data-act="export">Résumé à copier</button><button class="btn ghost" data-act="exportall">Extraction complète</button></div>
-  <p class="demo"><b>Heures par site</b> : un fichier Excel mis en forme, prêt à transmettre. <b>Résumé à copier</b> : les mêmes totaux, à coller en A1. <b>Extraction complète</b> : une ligne par demi-journée (date, technicien, site, heures, détail), pour faire tes propres tableaux.</p>
+  <p class="demo">Un fichier Excel mis en forme, prêt à transmettre. Choisis d'abord la période, et si besoin un technicien ou un site.</p>
   <p class="demo">Estimation à partir du planning : matin 8h–12h = 4 h, après-midi 13h–16h45 = 3 h 45. Nuits comptées en nombre, absences en jours. Visible uniquement par Pierre et Raphaël.</p>`;
 }
 /* ---------- Fichier Excel mis en forme ---------- */
@@ -644,7 +643,7 @@ const XSTYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3F8FD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBDD7EE"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2E75B6"/><bgColor indexed="64"/></patternFill></fill></fills>
 <borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="22"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<cellXfs count="23"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
 <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
 <xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
@@ -665,7 +664,8 @@ const XSTYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xf numFmtId="2" fontId="3" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment indent="2"/></xf>
 <xf numFmtId="0" fontId="3" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
-<xf numFmtId="2" fontId="3" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs>
+<xf numFmtId="2" fontId="3" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
 function xlsxBlob(sheetName,rows,merges,widths){
   const sd=rows.map((r,ri)=>r?`<row r="${ri+1}"${r.ht?` ht="${r.ht}" customHeight="1"`:''}>${r.c.map((c,ci)=>{if(c==null)return '';const ref=XCOL(ci)+(ri+1),[v,s]=Array.isArray(c)?c:[c,0];
@@ -685,15 +685,18 @@ function recapRows(){
   const {lb,SI}=computeHours(),plain=lb.replace(/<[^>]+>/g,'');
   const rows=[],merges=[],R=(c,ht)=>{rows.push(c?{c,ht}:null);return rows.length};
   const flt=[S.fs?S.fs.replace('g:',''):'',S.ft?short(S.ft):''].filter(Boolean);
-  R([['HEURES PAR SITE — '+plain.toUpperCase()+(flt.length?' — '+flt.join(' · ').toUpperCase():''),1]],24);merges.push('A1:C1');
-  R([['Généré le '+new Date().toLocaleDateString('fr-FR')+' · matin 4 h, après-midi 3 h 45',9]]);merges.push('A2:C2');
+  const wk=S.per==='week',perT=wk?'S'+isoWeek(monday(S.hoff)):plain;
+  R([['HEURES PAR SITE — '+perT.toUpperCase(),1]],24);merges.push('A1:C1');
+  if(wk||flt.length){R([[[wk?plain.replace(/^S\d+\s*/,'').replace(/^./,c=>c.toUpperCase()):'',...flt].filter(Boolean).join(' · '),22]],20);merges.push('A2:C2')}
+  {const r=R([['Généré le '+new Date().toLocaleDateString('fr-FR')+' · matin 4 h, après-midi 3 h 45',9]]);merges.push('A'+r+':C'+r)}
   R(null);
-  R([['Site / technicien',3],['Groupe',3],['Heures',3]],22);
+  R([[S.ft?'Site':'Site / technicien',3],['Groupe',3],['Heures',3]],22);
   const blocks={};Object.entries(SI).forEach(([n,x])=>{const g=(siteOf(n)||{}).g||'';const k=g?'g:'+g:'s:'+n;const B=blocks[k]=blocks[k]||{g,tot:0,items:[]};B.tot+=x.tot;B.items.push([n,x])});
   const bl=Object.values(blocks).sort((a,b)=>b.tot-a.tot);let all=0;
   if(!bl.length)R([['Aucune heure sur site pour cette période',4]]);
   bl.forEach(B=>{all+=B.tot;
     B.items.sort((a,b)=>b[1].tot-a[1].tot).forEach(([n,x])=>{
+      if(S.ft){R([[n,4],[B.g||'',4],[x.tot,11]]);return}
       R([[n,7],[B.g||'',7],[x.tot,8]],18);
       Object.entries(x.by).sort((a,b)=>b[1]-a[1]).forEach(([tn,h])=>R([[short(tn),19],['',4],[h,5]]));R([],8)});
     if(B.g&&B.items.length>1){R([['Total '+B.g,20],['',20],[B.tot,21]],20);R([],14)}});
@@ -1140,7 +1143,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('click',e=>{const x=e.target;if(x&&x.type==='date'){try{x.showPicker()}catch(er){}}});
 document.addEventListener('keydown',e=>{const x=e.target;if(e.key==='Enter'&&x.dataset&&(x.dataset.ch==='fti'||x.dataset.ch==='fsi')){e.preventDefault();x.blur()}});
 document.addEventListener('input',e=>{const x=e.target;if(!x.dataset||(x.dataset.ch!=='fti'&&x.dataset.ch!=='fsi'))return;
-  const opts=x.dataset.ch==='fti'?WORK().map(t=>[t,t]):fsOpts(),q=x.value.trim().toLowerCase(),ex=q?opts.find(o=>o[0].toLowerCase()===q):['',''];
+  const opts=(x.dataset.ch==='fti'?WORK().map(t=>[t,t]):fsOpts()).concat([['Tous','']]),q=x.value.trim().toLowerCase(),ex=q?opts.find(o=>o[0].toLowerCase()===q):['',''];
   if(ex){if(x.dataset.ch==='fti')S.ft=ex[1];else S.fs=ex[1];render()}});
 document.addEventListener('change',e=>{const x=e.target;if(x.dataset&&x.dataset.ch==='hp'){S.hp=x.value;render()}else if(x.dataset&&x.dataset.ch==='fti'){const r=pickFrom(x.value,WORK().map(t=>[t,t]).concat(WORK().map(t=>[short(t),t])));if(r===null){toast('Plusieurs ou aucun technicien : choisis dans la liste');return}S.ft=r;render()}else if(x.dataset&&x.dataset.ch==='fsi'){const r=pickFrom(x.value,fsOpts());if(r===null){toast('Plusieurs ou aucun site : choisis dans la liste');return}S.fs=r;render()}});
 async function boot(){
