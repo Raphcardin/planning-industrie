@@ -145,7 +145,7 @@ main.nonav{padding-bottom:30px}
 .rq{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px;margin-top:6px}
 .rq .st{font-size:14px;padding:4px 10px}
 .st{font-size:12px;font-weight:700;border-radius:99px;padding:3px 9px;white-space:nowrap}
-.st.open{background:light-dark(#fdf0e4,#3a2512);color:#e8771a}.st.done{background:light-dark(#e7f6ec,#12301d);color:#2f9e55}.st.refused{background:var(--today);color:var(--mute)}
+.st.open{background:light-dark(#fdf0e4,#3a2512);color:#e8771a}.st.done{background:light-dark(#e7f6ec,#12301d);color:#2f9e55}.rfx{display:block;color:var(--mute);font-weight:600}.rfxbox{background:var(--today);color:var(--mute);font-weight:600}.st.refused,.st.cancelled{background:var(--today);color:var(--mute)}
 .reqcard{border-left:4px solid #e8771a}
 .kpi{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}.kpi span{color:var(--mute);font-weight:600}
 .kpi b{font:700 34px/1 "Barlow Condensed",sans-serif}
@@ -353,7 +353,7 @@ function canWrite(it){if(isAdmin())return true;const me=S.user&&S.user.n;return 
 async function fetchAll(){let out=[];for(let i=0;;i+=1000){const {data,error}=await sb.from('items').select('key,kind,owner,val').order('key').range(i,i+999);if(error)throw error;out=out.concat(data||[]);if(!data||data.length<1000)break}return out}
 function setNet(ok,msg){const was=NET;NET=ok;NETMSG=msg||'';const b=document.getElementById('netbar');if(b){b.hidden=ok;b.textContent=msg||''}if(ok!==was&&!ok)console.warn(msg)}
 const sheetOpen=()=>!!document.querySelector('#sheet.open');
-const typing=()=>{const a=document.activeElement;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)};
+const typing=()=>{const a=document.activeElement;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&!(a.closest('#sheet')&&!sheetOpen())};
 async function pull(){
   if(!sb||!S.user||BUSY||PEND)return false;
   try{const rows=await fetchAll();if(BUSY||PEND)return false;
@@ -397,7 +397,9 @@ function week(off){const k=typeof off==='string'?off:key(off);const w=DB.data[k]
 const noteOf=(k,t,s)=>DB.notes[k+'|'+t+'|'+s]||'';
 const setNote=(k,t,s,v)=>{const x=k+'|'+t+'|'+s;if(v)DB.notes[x]=v;else delete DB.notes[x]};
 const isRf=(k,t,s)=>!!rfIn(k,t,s)||!!rfOut(k,t,s);
-const rfIn=(k,t,s)=>DB.reqs.find(r=>r.by===t&&r.wk===k&&r.slots.includes(s)&&r.status!=='refused');
+const rfIn=(k,t,s)=>DB.reqs.find(r=>r.by===t&&r.wk===k&&r.slots.includes(s)&&!['refused','cancelled'].includes(r.status));
+const rfX=(k,t,s)=>DB.reqs.find(r=>r.status==='cancelled'&&r.was===t&&r.wk===k&&r.slots.includes(s));
+const rfXTxt=r=>'Renfort annulé · '+label(r.site)+' (par '+short(r.cancelBy||r.by)+')';
 const rfOut=(k,t,s)=>DB.reqs.find(r=>r.status==='done'&&r.who===t&&r.wk===k&&r.slots.includes(s)&&((DB.data[k]||{})[t]||[])[s]===r.site);
 const cut=(t,n)=>t&&t.length>n?t.slice(0,n).replace(/\s+\S*$/,'')+'…':t;
 const meetBadge=(k,vis,big)=>{if(big){const t=vis[0];const m=meetOf(k,t);return `<button class="mbadge ${m.st}" data-act="meet" aria-label="Réunion ${MEET.time}">${MEET.time} ${m.st==='yes'?'✓':m.st==='no'?'✗':esc(m.why)}</button>`}
@@ -489,12 +491,12 @@ function astCard(){
 function vMoi(){
   const t=S.user.n,k=key(S.off),wd=week(S.off);
   const empty=[...Array(10).keys()].filter(s=>isEmptySlot(k,t,s)).length;
-  const det=[];for(let i=0;i<5;i++){if(ferie(k,i))continue;const fz=fused(k,t,i);[0,1].forEach(h=>{if(fz&&h)return;const s=i*2+h,n=noteOf(k,t,s),r=rfIn(k,t,s),o=rfOut(k,t,s);if(n||r||o){const p=det[det.length-1];if(h===1&&p&&p.i===i&&p.h===0&&p.n===n&&p.r===r&&p.o===o){p.h=2;return}det.push({i,h:fz?2:h,s,n,r,o})}})}
+  const det=[];for(let i=0;i<5;i++){if(ferie(k,i))continue;const fz=fused(k,t,i);[0,1].forEach(h=>{if(fz&&h)return;const s=i*2+h,n=noteOf(k,t,s),r=rfIn(k,t,s),o=rfOut(k,t,s),xc=!o&&rfX(k,t,s);if(n||r||o||xc){const p=det[det.length-1];if(h===1&&p&&p.i===i&&p.h===0&&p.n===n&&p.r===r&&p.o===o&&p.xc===xc){p.h=2;return}det.push({i,h:fz?2:h,s,n,r,o,xc})}})}
   return weekNav()+astCard()+(isAbsOnly(t)?`<div class="card">Ta ligne sert uniquement à indiquer tes absences.</div>`:`<div class="card ${empty?'warn':'ok'} stat"><span>${empty?`${empty} créneau${empty>1?'x':''} à remplir`:'Ta semaine est complète'}</span>${empty?`<button class="mini" data-act="copy">Recopier la semaine dernière</button>`:''}</div>`)+
   `<p class="demo" style="margin:0 2px 6px">Touche une case pour la modifier.</p>`+gridHTML(k,wd,[t],true)+
   `<div class="lgrow"><button class="lgb" data-act="legend">Légende</button>${!ferie(k,MEET.day)?(()=>{const m=meetOf(k,t);return `<button class="mtp ${m.st}" data-act="meet">Réunion jeu. ${dayDate(k,MEET.day).getDate()} · ${MEET.time} · <b>${m.st==='yes'?'Présent':m.st==='no'?'Absent':esc(m.why)}</b></button>`})():''}</div>
   <div class="duo">${isAbsOnly(t)?'':'<button class="btn ghost" data-act="reqnew">Demander un renfort</button>'}<button class="btn ghost" data-act="cp">Prévenir d'une absence</button></div>
-  ${det.length?`<div class="card"><b>Détails de la semaine</b>${det.map(x=>`<button class="detl" data-act="dinfo" data-t="${TECHS().indexOf(t)}" data-s="${x.s}"${x.h===2?' data-j="1"':''}><span class="dtags"><span class="dtag">${DAYS[x.i]} ${dayDate(k,x.i).getDate()} · ${x.h===2?'Journée':x.h?'Après-midi':'Matin'}</span>${wd[t][x.s]?chip(wd[t][x.s]):''}</span>${x.r?`<span class="${rfCls(x.r)}">${esc(rfTxt(x.r))}${x.r.note?' – '+esc(cut(x.r.note,60)):''}</span>`:''}${x.o?`<span class="rfok">${esc(rfGo(x.o))}${x.o.note?' – '+esc(cut(x.o.note,60)):''}</span>`:''}${x.n?`<span class="pl">${esc(x.n)}</span>`:''}</button>`).join('')}</div>`:''}
+  ${det.length?`<div class="card"><b>Détails de la semaine</b>${det.map(x=>`<button class="detl" data-act="dinfo" data-t="${TECHS().indexOf(t)}" data-s="${x.s}"${x.h===2?' data-j="1"':''}><span class="dtags"><span class="dtag">${DAYS[x.i]} ${dayDate(k,x.i).getDate()} · ${x.h===2?'Journée':x.h?'Après-midi':'Matin'}</span>${wd[t][x.s]?chip(wd[t][x.s]):''}</span>${x.r?`<span class="${rfCls(x.r)}">${esc(rfTxt(x.r))}${x.r.note?' – '+esc(cut(x.r.note,60)):''}</span>`:''}${x.xc?`<span class="rfx">${esc(rfXTxt(x.xc))}</span>`:''}${x.o?`<span class="rfok">${esc(rfGo(x.o))}${x.o.note?' – '+esc(cut(x.o.note,60)):''}</span>`:''}${x.n?`<span class="pl">${esc(x.n)}</span>`:''}</button>`).join('')}</div>`:''}
   ${isAbsOnly(t)?'':myReqs()}`;
 }
 const pastBox=(l,f)=>`<details class="card pastrf"><summary><b>Ces 30 derniers jours</b> <span class="demo">(${l.length})</span></summary>${l.map(f).join('')}</details>`;
@@ -502,15 +504,15 @@ function vRf(){
   const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),me=S.user.n,when=r=>dayDate(r.wk,r.slots[0]>>1);
   const up=DB.reqs.filter(r=>when(r)>=today).sort((a,b)=>when(a)-when(b));
   const past=DB.reqs.filter(r=>when(r)<today&&(today-when(r))/864e5<=30).sort((a,b)=>when(b)-when(a));
-  const stTxt=r=>r.status==='open'?'En attente':r.status==='done'?esc(short(r.who))+' vient':'Refusée';
-  const row=(r,who)=>`<div class="rq"><span><b>${esc(label(r.site))}</b><small style="display:block;color:var(--mute);font-size:13px">${reqWhen(r)}${who?' · demandé par '+esc(short(r.by))+(r.ent?' (saisi par '+esc(short(r.ent))+')':''):''}${r.note?' · '+esc(r.note):''}</small></span><span class="st ${r.status}">${stTxt(r)}</span></div>`;
+  const stTxt=r=>r.status==='open'?'En attente':r.status==='done'?esc(short(r.who))+' vient':r.status==='cancelled'?'Annulée':'Refusée';
+  const row=(r,who)=>`<div class="rq"${isAdmin()?` data-act="req" data-id="${r.id}" role="button" style="cursor:pointer"`:''}><span><b>${esc(label(r.site))}</b><small style="display:block;color:var(--mute);font-size:13px">${reqWhen(r)}${who?' · demandé par '+esc(short(r.by))+(r.ent?' (saisi par '+esc(short(r.ent))+')':''):''}${r.note?' · '+esc(r.note):''}</small></span><span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0"><span class="st ${r.status}">${stTxt(r)}</span>${!isAdmin()&&r.by===me&&(r.status==='open'||r.status==='done')?`<button class="mini" data-act="rfcancel" data-id="${r.id}">Annuler</button>`:''}</span></div>`;
   const sec=(t,l,empty,f)=>`<div class="h2">${t}</div><div class="card">${l.length?l.map(f).join(''):`<p class="demo" style="margin:0">${empty}</p>`}</div>`;
   let h=`<button class="btn" data-act="reqnew" style="margin:4px 0 6px">Demander un renfort</button>`;
   if(isAdmin()){const open=up.filter(r=>r.status==='open');
     h+=`<div class="h2">À traiter${open.length?` <span style="color:#e8771a">(${open.length})</span>`:''}</div><div class="card">${open.length?open.map(r=>`<button class="rqb hot" data-act="req" data-id="${r.id}"><span><b>${esc(label(r.site))}</b><small>${reqWhen(r)} · demandé par ${esc(short(r.by))}${r.ent?' (saisi par '+esc(short(r.ent))+')':''}${r.note?' · '+esc(r.note):''}</small></span><span class="st go">Choisir</span></button>`).join(''):'<p class="demo" style="margin:0">Aucune demande en attente.</p>'}</div>`}
   if(hasLine()){
     h+=sec('Mes demandes',up.filter(r=>r.by===me),'Tu n\'as pas de demande en cours.',r=>row(r,false));
-    h+=sec('Où je vais en renfort',up.filter(r=>r.status==='done'&&r.who===me),'Personne ne t\'a demandé en renfort pour l\'instant.',r=>`<div class="rq"><span><b>${esc(rfGo(r))}</b><small style="display:block;color:var(--mute);font-size:13px">${reqWhen(r)}${r.note?' · '+esc(r.note):''}</small></span><span class="st done">J'y vais</span></div>`)}
+    h+=sec('Où je vais en renfort',up.filter(r=>(r.status==='done'&&r.who===me)||(r.status==='cancelled'&&r.was===me)),'Personne ne t\'a demandé en renfort pour l\'instant.',r=>`<div class="rq"><span><b>${esc(rfGo(r))}</b><small style="display:block;color:var(--mute);font-size:13px">${reqWhen(r)}${r.note?' · '+esc(r.note):''}</small></span>${r.status==='cancelled'?`<span class="st cancelled">Annulé</span>`:`<span class="st done">J'y vais</span>`}</div>`)}
   if(isAdmin()){h+=sec('Toutes les demandes à venir',up.filter(r=>r.status!=='open'),'Rien de prévu.',r=>row(r,true));
     if(past.length)h+=pastBox(past,r=>row(r,true))}
   else{const mp=past.filter(r=>r.by===me||r.who===me);if(mp.length)h+=pastBox(mp,r=>row(r,r.by!==me))}
@@ -768,6 +770,7 @@ function vReglages(){
 function render(){
   const app=document.getElementById('app');
   if(!BOOTED){app.innerHTML=`<div class="top"><h1>Planning Industrie</h1></div><div class="login"><p class="demo">Chargement…</p></div>`;return}
+  if(S.user){let ch=false;DB.reqs.forEach(r=>{if(r.pendRev&&(isAdmin()||S.user.n===r.was)){rfRevert(r,r.was);delete r.pendRev;ch=true}});if(ch)save()}
   if(!S.user){
     app.innerHTML=`<div class="top"><h1>Planning Industrie</h1></div><div class="login"><h2>Qui es-tu ?</h2>
     ${!sb?'<div class="notebox">Impossible de joindre le service. Vérifie ta connexion puis recharge la page.</div>':!USERS().length?'<div class="notebox">La liste de l\'équipe ne se charge pas. Vérifie ta connexion puis recharge la page.</div>':''}
@@ -806,7 +809,7 @@ hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2
 /* ---------- Feuilles (panneaux du bas) ---------- */
 const sh=document.getElementById('sh'),sheet=document.getElementById('sheet');
 const openSheet=html=>{sheet.innerHTML='<div class="xw"><button class="x" data-act="close" aria-label="Fermer sans enregistrer">×</button></div>'+html;sheet.scrollTop=0;sh.classList.add('open');setTimeout(()=>{sheet.scrollTop=0},30)};
-const closeSheet=()=>{sh.classList.remove('open');S.confirm=null};
+const closeSheet=()=>{sh.classList.remove('open');S.confirm=null;const ae=document.activeElement;if(ae&&sh.contains(ae))ae.blur()};
 let cur=null,sel='',scope=0;
 const TAGS=['Installation','Maintenance','Dépannage','Sous-traitance','Penser à : '];
 const TAGL={'Sous-traitance':'S-traitance'};
@@ -827,7 +830,7 @@ function cellSheet(ti,s,j){lastCell=[ti,s,j];
   const n=scope===2?(noteOf(k,t,i*2)||noteOf(k,t,i*2+1)):noteOf(k,t,i*2+scope),lm=lastMod(k,t,s);
   const head=`<h3>${esc(t)} · ${DAYS[i]} ${dm(dayDate(k,i))}</h3>`;
   const rq=rfIn(k,t,i*2)||rfIn(k,t,i*2+1),ro=rfOut(k,t,i*2)||rfOut(k,t,i*2+1);
-  const last=(rq?`<div class="notebox ${rq.status==='done'?'rfokbox':'rfbox'}">${esc(rfTxt(rq))}${rq.note?' · '+esc(rq.note):''}${isAdmin()&&rq.status==='open'?`<button class="btn" style="margin-top:10px;background:#e8771a" data-act="req" data-id="${rq.id}">Choisir qui envoyer</button>`:''}</div>`:'')+(ro?`<div class="notebox rfokbox">${esc(rfGo(ro))}${ro.note?'<br>'+esc(ro.note):''}</div>`:'')+(lm?`<p class="last">Modifié par ${esc(lm.who)}, ${stamp(lm.at)}</p>`:'');
+  const last=(rq?`<div class="notebox ${rq.status==='done'?'rfokbox':'rfbox'}">${esc(rfTxt(rq))}${rq.note?' · '+esc(rq.note):''}${isAdmin()&&rq.status==='open'?`<button class="btn" style="margin-top:10px;background:#e8771a" data-act="req" data-id="${rq.id}">Choisir qui envoyer</button>`:''}${isAdmin()&&rq.status==='done'?`<button class="btn ghost" style="margin-top:10px" data-act="req" data-id="${rq.id}">Modifier le renfort</button>`:''}${!isAdmin()&&rq.by===S.user.n?`<button class="btn ghost" style="margin-top:10px" data-act="rfcancel" data-id="${rq.id}">Annuler ma demande</button>`:''}</div>`:'')+(!ro&&(rfX(k,t,i*2)||rfX(k,t,i*2+1))?`<div class="notebox rfxbox">${esc(rfXTxt(rfX(k,t,i*2)||rfX(k,t,i*2+1)))}</div>`:'')+(ro?`<div class="notebox rfokbox">${esc(rfGo(ro))}${ro.note?'<br>'+esc(ro.note):''}${isAdmin()?`<button class="btn ghost" style="margin-top:10px" data-act="req" data-id="${ro.id}">Modifier le renfort</button>`:''}</div>`:'')+(lm?`<p class="last">Modifié par ${esc(lm.who)}, ${stamp(lm.at)}</p>`:'');
   if(!can(t)){openSheet(head+`<div class="pend"><div><small>Matin</small>${chip(pend[0],'Vide')}</div><div><small>Après-midi</small>${chip(pend[1],'Vide')}</div></div>${n?`<div class="notebox">${esc(n)}</div>`:''}${last}<button class="btn ghost" style="margin-top:16px" data-act="close">Fermer</button>`);return}
   const opt=x=>`<button type="button" class="opt" data-act="choose" data-v="${esc(x)}">${chip(x)}</button>`;
   openSheet(head+last+`
@@ -910,21 +913,28 @@ function reqSheet(){
 }
 function pickPeople(site,slots,k,act,extra,exclude){
   const R=CONF.req.filter(q=>q.site!==site);
-  return WORK().filter(t=>t!==exclude).map(t=>{const vals=slots.map(s=>(DB.data[k]&&DB.data[k][t]||[])[s]);
+  return WORK().filter(t=>!String(exclude||'').split('|').includes(t)).map(t=>{const vals=slots.map(s=>(DB.data[k]&&DB.data[k][t]||[])[s]);
     return `<div class="srow cand"><span>${esc(short(t))}${R.filter(q=>q.tit.includes(t)).map(q=>`<small class="tit">titulaire ${esc(label(q.site))}</small>`).join('')} ${(vals.length===2&&vals[0]===vals[1]?[vals[0]]:vals).map(v=>chip(v,'Vide')).join('')}</span><button class="mini" data-act="${act}" data-t="${esc(t)}" ${extra}>Envoyer</button></div>`}).join('');
 }
 function reqDaySheet(i){
-  const k=key(S.off),l=DB.reqs.filter(r=>r.wk===k&&(r.slots[0]>>1)===i&&r.status!=='refused');
+  const k=key(S.off),l=DB.reqs.filter(r=>r.wk===k&&(r.slots[0]>>1)===i&&!['refused','cancelled'].includes(r.status));
   openSheet(`<h3>Renforts · ${DAYS[i].toLowerCase()} ${dm(dayDate(k,i))}</h3>${l.map(r=>`<div class="card" style="margin:10px 0 0"><div class="srow"><b>${esc(label(r.site))}</b><span class="st ${r.status}">${r.status==='open'?'À pourvoir':esc(short(r.who))+' y va'}</span></div>
     <div class="snote" style="margin:4px 0 0">${r.slots.length>1?'Journée':r.slots[0]&1?'Après-midi':'Matin'} · demandé par ${esc(short(r.by))}${r.note?' · '+esc(r.note):''}</div>
     ${r.status==='open'&&isAdmin()?`<button class="btn" style="margin:10px 0 0" data-act="req" data-id="${r.id}">Choisir qui envoyer</button>`:''}</div>`).join('')}
   <button class="btn ghost" style="margin-top:14px" data-act="close">Fermer</button>`);
 }
+function rfRevert(r,t=r.who){const w=week(r.wk);if(!t||!w[t])return;
+  r.slots.forEach(sl=>{if(w[t][sl]!==r.site)return;const back=r.prev&&sl in r.prev?r.prev[sl]:'';w[t][sl]=back;DB.hist.unshift({at:Date.now(),who:S.user.n,t,wk:r.wk,s:sl,from:r.site,to:back,note:null})})}
 function assignSheet(id){
   const r=DB.reqs.find(x=>x.id===id);
   openSheet(`<h3>Renfort : ${esc(label(r.site))}</h3><div class="demo">${reqWhen(r)} · demandé par ${esc(short(r.by))}</div>${r.note?`<div class="notebox">${esc(r.note)}</div>`:''}
-  <label>Qui envoyer ?</label>${pickPeople(r.site,r.slots,r.wk,'assign',`data-id="${r.id}"`,r.by)}
-  <div class="duo" style="margin-top:14px"><button class="btn ghost" data-act="close">Fermer</button><button class="btn ghost" data-act="refuse" data-id="${r.id}">Refuser</button></div>`);
+  ${r.status==='open'?`<label>Qui envoyer ?</label>${pickPeople(r.site,r.slots,r.wk,'assign',`data-id="${r.id}"`,r.by)}
+  <div class="duo" style="margin-top:14px"><button class="btn ghost" data-act="close">Fermer</button>${r.by===S.user.n?`<button class="btn ghost" data-act="rfcancel" data-id="${r.id}">Annuler ma demande</button>`:`<button class="btn ghost" data-act="refuse" data-id="${r.id}">Refuser</button>`}</div>`
+  :r.status==='done'?`<div class="card ok" style="margin:8px 0">Acceptée : <b>${esc(short(r.who))}</b> y va</div>
+  <label>Changer de personne</label><p class="demo" style="margin:0 0 6px">La case de ${esc(short(r.who))} revient à ce qu'elle était.</p>${pickPeople(r.site,r.slots,r.wk,'assign',`data-id="${r.id}"`,r.by+'|'+r.who)}
+  <div class="duo" style="margin-top:14px"><button class="btn ghost" data-act="close">Fermer</button><button class="btn ghost" data-act="rfcancel" data-id="${r.id}">Annuler le renfort</button></div>`
+  :`<div class="card" style="margin:8px 0">${r.status==='cancelled'?'Annulée':'Refusée'}</div>
+  <div class="duo" style="margin-top:14px"><button class="btn ghost" data-act="close">Fermer</button><button class="btn" data-act="rfreopen" data-id="${r.id}">Remettre en attente</button></div>`}`);
 }
 function coverSheet(site,s){
   const k=key(S.off),c=coverOf(k,site,s),R=CONF.req.find(r=>r.site===site),wd=week(S.off);
@@ -1111,8 +1121,13 @@ document.addEventListener('click',e=>{
   case 'unack':{const st=b.dataset.site,sl=+b.dataset.s,k=key(S.off);delete DB.ack[k+'|'+st+'|'+sl];save();coverSheet(st,sl);render();toast('Validation annulée')}break;
   case 'seen':DB.alerts.forEach(x=>x.seen=true);save();render();break;
   case 'assign':{const r=DB.reqs.find(x=>x.id===+b.dataset.id),t=b.dataset.t,w=week(r.wk);
-    r.slots.forEach(sl=>{const old=w[t][sl];w[t][sl]=r.site;setNote(r.wk,t,sl,'');DB.hist.unshift({at:Date.now(),who:S.user.n,t,wk:r.wk,s:sl,from:old,to:r.site,note:null})});
+    if(r.status==='done'&&r.who&&r.who!==t)rfRevert(r);
+    r.prev={};r.slots.forEach(sl=>{const old=w[t][sl];r.prev[sl]=old||'';w[t][sl]=r.site;setNote(r.wk,t,sl,'');DB.hist.unshift({at:Date.now(),who:S.user.n,t,wk:r.wk,s:sl,from:old,to:r.site,note:null})});
     r.status='done';r.who=t;save();closeSheet();render();toast(t+' envoyé en renfort · '+short(r.by)+' est prévenu')}break;
+  case 'rfcancel':{const r=DB.reqs.find(x=>x.id===+b.dataset.id),was=r.status==='done'?r.who:null;
+    if(was){r.was=was;r.cancelBy=S.user.n;if(isAdmin()||S.user.n===was)rfRevert(r);else r.pendRev=true}
+    r.status='cancelled';delete r.who;save();closeSheet();render();toast(r.by===S.user.n?(was?'Demande annulée · '+short(was)+' est libéré':'Demande annulée'):'Renfort annulé · '+short(r.by)+' est prévenu')}break;
+  case 'rfreopen':{const r=DB.reqs.find(x=>x.id===+b.dataset.id);r.status='open';delete r.who;save();closeSheet();render();toast('Demande remise en attente')}break;
   case 'refuse':{const r=DB.reqs.find(x=>x.id===+b.dataset.id);r.status='refused';save();closeSheet();render();toast('Demande refusée · '+short(r.by)+' est prévenu')}break;
   case 'send':{const t=b.dataset.t,st=b.dataset.site,sl=+b.dataset.s,k=key(S.off),w=week(S.off),old=w[t][sl];w[t][sl]=st;DB.hist.unshift({at:Date.now(),who:S.user.n,t,wk:k,s:sl,from:old,to:st,note:null});save();closeSheet();render();toast(t+' envoyé sur '+st)}break;
   case 'copy':{const t=S.user.n,k=key(S.off),w=week(S.off),p=week(S.off-1);let n=0;
